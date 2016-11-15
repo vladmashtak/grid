@@ -127,7 +127,6 @@ export class GridLoyoutComponent implements OnChanges, OnInit, AfterContentInit 
   @Output() onResizeStop: EventEmitter<any> = new EventEmitter<any>();
 
   private _gridLayoutState: IGridLayoutState;
-
   constructor() {
     this._gridLayoutState = this.getInitialState()
   }

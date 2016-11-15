@@ -1,1 +1,5 @@
-<ng-content></ng-content>
+<template *ngFor="let child of children._results">
+ <grid-item>
+   <!--<div [innerHTML]="child.nativeElement.innerHTML"></div>-->
+ </grid-item>
+</template>
