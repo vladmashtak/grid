@@ -8,121 +8,124 @@ import {
 } from '@angular/core';
 
 // import { GridUtilesService } from '../grid-utiles.service';
-import {perc, setTopLeft, setTransform} from './utiles';
+import {
+  perc,
+  setTopLeft,
+  setTransform
+} from './utiles';
 
 import { IResizable } from '../resizable/resizable.interfaces';
 import { IDraggable } from '../draggable/draggable.interfaces';
 
 import { IPosition, IGridItemState } from './grid-item.interfaces';
 
+interface ILayoutItemRequired {
+  w: number; h: number;
+  x: number; y: number;
+  i: string;
+}
+
+interface ILayoutItem extends ILayoutItemRequired {
+  minW?: number; minH?: number;
+  maxW?: number; maxH?: number;
+  moved?: boolean; static?: boolean;
+  isDraggable?: boolean; isResizable?: boolean;
+}
+
+interface IDataGrid {
+  // General grid attributes
+  cols: number;
+  containerWidth: number;
+  rowHeight: number;
+  margin: Array<any>;
+  maxRows: number;
+  containerPadding: Array<any>;
+
+  // These are all in grid units
+  x: number;  y: number;
+  w: number;  h: number;
+
+  // All optional
+  minW: number;  maxW: number;
+  minH: number;  maxH: number;
+
+  // ID is nice to have for callbacks
+  i: string;
+
+  // Flags
+  isDraggable: boolean;
+  isResizable: boolean;
+  static: boolean;
+
+  // Use CSS transforms instead of top/left
+  useCSSTransforms: boolean;
+
+  // Others
+  className: string;
+  // Selector for draggable handle
+  handle: string
+  // Selector for draggable cancel (see react-draggable)
+  cancel: string;
+}
+
 @Component({
   selector: 'grid-item',
   templateUrl: './grid-item.component.html',
-  styleUrls: ['./grid-item.component.scss'],
-  host: {
-    '(onResizeStop)':   'onResizeHandler("onResizeStop")',
-    '(onResizeStart)':  'onResizeHandler("onResizeStart")',
-    '(onResize)':       'onResizeHandler("onResize")',
-    '(onStart)':        'onDragHandler("onDragStart")',
-    '(onDrag)':         'onDragHandler("onDrag")',
-    '(onStop)':         'onDragHandler("onDragStop")'
-  }
+  styleUrls: ['./grid-item.component.scss']
 })
+
 export class GridItemComponent implements OnChanges {
+  @Input() key:any;
+  @Input() dataItem:ILayoutItem; // position item on grid layout
+  @Input() dataGrid:IDataGrid;
 
-  @Input() draggable:IDraggable;
-  @Input() resizable:IResizable;
+  public draggableProp: IResizable;
+  public resizableProp: IDraggable;
 
-  // General grid attributes
-  @Input() cols:number;
-  @Input() containerWidth:number;
-  @Input() rowHeight:number;
-  @Input() margin:Array<number>;
-  @Input() maxRows:number;
-  @Input() containerPadding:Array<number>
-
-  // These are all in grid units
-  @Input() x:number;
-  @Input() y:number;
-  @Input() w:number;
-  @Input() h:number;
-
-  // All optional
-  @Input() minW:number = 1;
-  @Input() maxW:number = Infinity;
-
-  @Input() minH:number = 1;
-  @Input() maxH:number = Infinity;
-
-  // ID is nice to have for callbacks
-  @Input() i:string;
-
-  // Functions
-  @Output() onDragStop:EventEmitter<any> = new EventEmitter<any>();
-  @Output() onDragStart:EventEmitter<any> = new EventEmitter<any>();
-  @Output() onDrag:EventEmitter<any> = new EventEmitter<any>();
-  @Output() onResizeStop:EventEmitter<any> = new EventEmitter<any>();
-  @Output() onResizeStart:EventEmitter<any> = new EventEmitter<any>();
-  @Output() onResize:EventEmitter<any> = new EventEmitter<any>();
-
-  // Flags
-  @Input() isDraggable:boolean;
-  @Input() isResizable:boolean;
-  @Input() static:boolean;
-
-  // Use CSS transforms instead of top/left
-  @Input() useCSSTransforms:boolean;
-
-  // Others
-  @Input() className:string = '';
-  // Selector for draggable handle
-  @Input() handle:string = '';
-  // Selector for draggable cancel (see react-draggable)
-  @Input() cancel:string = '';
-
-  private _gridItemState:IGridItemState;
+  private _gridItemState: IGridItemState;
 
   constructor(
-    private _element:ElementRef
+    private _element: ElementRef
   ) {
-    this._gridItemState = this.getInitialState();
+    this.dataItem = Object.assign({
+      minH: 1,
+      minW: 1,
+      maxH: Infinity,
+      maxW: Infinity
+    }, this.dataItem);
+
+    this._gridItemState = this.setInitialState();
+
+    console.log('item is here')
   }
 
   ngOnChanges() {
-    const {x, y, w, h, useCSSTransforms} = this;
+    const {x, y, w, h} = this.dataGrid;
+    const pos = this.calcPosition(x, y, w, h, this.dataGrid);
 
-    const pos = this.calcPosition(x, y, w, h, this._gridItemState);
-
-    this._element.nativeElement.classList.add(<any>[
-      'react-grid-item',
-      this.className,
-      this.static ? 'static' : '',
-      this._gridItemState.resizing ? 'resizing' : '',
-      this._gridItemState.dragging ? 'react-draggable-dragging' : '',
-      useCSSTransforms ? 'cssTransforms' : ''
-    ]);
-
-    // Resizable support. This is usually on but the user can toggle it off.
-    this.resizable = this.mixinResizable(pos);
-
-    // Draggable support. This is always on, except for with placeholders.
-    this.draggable = this.mixinDraggable();
+    this.draggableProp = this.mixinDraggable();
+    this.resizableProp = this.mixinResizable(pos);
   }
 
-  getInitialState():IGridItemState {
-    return <IGridItemState>{
-      resizing: null,
-      dragging: null,
-      className: ''
-    }
+  setInitialState() {
+      return <IGridItemState>{
+        resizing: null,
+        dragging: null,
+        className: ''
+      }
   }
 
   // Helper for generating column width
-  calcColWidth():number {
-    const {margin, containerPadding, containerWidth, cols} = this;
+  calcColWidth(): number {
+    const {
+      margin,
+      containerPadding,
+      containerWidth,
+      cols
+      } = this.dataGrid;
+
     return (containerWidth - (margin[0] * (cols - 1)) - (containerPadding[0] * 2)) / cols;
   }
-
   /**
    * Return position on the page given an x, y, w, h.
    * left, top, width, height are all in pixels.
@@ -132,8 +135,8 @@ export class GridItemComponent implements OnChanges {
    * @param  {Number}  h             H coordinate in grid units.
    * @return {Object}                Object containing coords.
    */
-  calcPosition(x:number, y:number, w:number, h:number, state?:Object):IPosition {
-    const {margin, containerPadding, rowHeight} = this;
+  calcPosition(x:number, y:number, w:number, h:number, state?:IGridItemState):IPosition {
+    const {margin, containerPadding, rowHeight} = this.dataGrid;
     const colWidth = this.calcColWidth();
 
     const out = {
@@ -146,19 +149,17 @@ export class GridItemComponent implements OnChanges {
       height: h === Infinity ? h : Math.round(rowHeight * h + Math.max(0, h - 1) * margin[1])
     };
 
-    if (this._gridItemState && this._gridItemState.resizing) {
-      out.width = Math.round(this._gridItemState.resizing.width);
-      out.height = Math.round(this._gridItemState.resizing.height);
+    if (state && state.resizing) {
+      out.width = Math.round(state.resizing.width);
+      out.height = Math.round(state.resizing.height);
     }
 
-    if (this._gridItemState && this._gridItemState.dragging) {
-      out.top = Math.round(this._gridItemState.dragging.top);
-      out.left = Math.round(this._gridItemState.dragging.left);
+    if (state && state.dragging) {
+      out.top = Math.round(state.dragging.top);
+      out.left = Math.round(state.dragging.left);
     }
-
     return out;
   }
-
 
   /**
    * Translate x and y coordinates from pixels to grid units.
@@ -166,8 +167,8 @@ export class GridItemComponent implements OnChanges {
    * @param  {Number} left Left position (relative to parent) in pixels.
    * @return {Object} x and y in grid units.
    */
-  calcXY(top:number, left:number):{x: number, y: number} {
-    const {margin, cols, rowHeight, w, h, maxRows} = this;
+  calcXY(top: number, left: number): {x: number, y: number} {
+    const {margin, cols, rowHeight, w, h, maxRows} = this.dataGrid;
     const colWidth = this.calcColWidth();
 
     // left = colWidth * x + margin * (x + 1)
@@ -193,8 +194,8 @@ export class GridItemComponent implements OnChanges {
    * @param  {Number} width  Width in pixels.
    * @return {Object} w, h as grid units.
    */
-  calcWH({height, width}: {height: number, width: number}):{w: number, h: number} {
-    const {margin, maxRows, cols, rowHeight, x, y} = this;
+  calcWH({height, width}: {height: number, width: number}): {w: number, h: number} {
+    const {margin, maxRows, cols, rowHeight, x, y} = this.dataGrid;
     const colWidth = this.calcColWidth();
 
     // width = colWidth * w - (margin * (w - 1))
@@ -219,18 +220,32 @@ export class GridItemComponent implements OnChanges {
    * @param  {Object} pos Position object with width, height, left, top.
    * @return {Object}     Style object.
    */
-  createStyle(pos:IPosition):Object {
-    const {useCSSTransforms} = this;
+  createStyle(pos: IPosition): string {
+    const {useCSSTransforms} = this.dataGrid;
 
+    let style;
     // CSS Transforms support (default)
     if (useCSSTransforms) {
-      return setTransform(pos);
+      style = setTransform(pos);
     }
     // top,left (slow)
     else {
-      return setTopLeft(pos);
-
+      style = setTopLeft(pos);
     }
+
+    return style;
+  }
+
+  /**
+   * Mix a Draggable instance into a child.
+   * @param  {Element} child    Child element.
+   * @return {Element}          Child wrapped in Draggable.
+   */
+  mixinDraggable():any {
+    return {
+      'handle': this.dataGrid.handle,
+      'cancel': ".react-resizable-handle" + (this.dataGrid.cancel ? "," + this.dataGrid.cancel : "")
+    };
   }
 
   /**
@@ -239,8 +254,8 @@ export class GridItemComponent implements OnChanges {
    * @param  {Object} position  Position object (pixel values)
    * @return {Element}          Child wrapped in Resizable.
    */
-  mixinResizable(position:IPosition):IResizable {
-    const {cols, x, minW, minH, maxW, maxH} = this;
+  mixinResizable(position:IPosition):any {
+    const {cols, x, minW, minH, maxW, maxH} = this.dataGrid;
 
     // This is the max possible width - doesn't go to infinity because of the width of the window
     const maxWidth = this.calcPosition(0, 0, cols - x, 0).width;
@@ -250,26 +265,13 @@ export class GridItemComponent implements OnChanges {
     const maxes = this.calcPosition(0, 0, maxW, maxH);
     const minConstraints = [mins.width, mins.height];
     const maxConstraints = [Math.min(maxes.width, maxWidth), Math.min(maxes.height, Infinity)];
-    return <IResizable>{
+    return {
       'width': position.width,
       'height': position.height,
       'minConstraints': minConstraints,
       'maxConstraints': maxConstraints
-    };
+    }
   }
-
-  /**
-   * Mix a Draggable instance into a child.
-   * @param  {Element} child    Child element.
-   * @return {Element}          Child wrapped in Draggable.
-   */
-  mixinDraggable():IDraggable {
-    return <IDraggable>{
-      'handle': this.handle,
-      'cancel': ".react-resizable-handle" + (this.cancel ? "," + this.cancel : "")
-    };
-  }
-
 
   /**
    * Wrapper around drag events to provide more useful data.
@@ -279,34 +281,36 @@ export class GridItemComponent implements OnChanges {
    * @param  {String} handlerName Handler name to wrap.
    * @return {Function}           Handler function.
    */
-  onDragHandler(event:MouseEvent, handlerName:string) {
-    console.log(arguments);
-/*    return (e:Event, {node, deltaX, deltaY}: DragCallbackData) => {
-      if (!this.props[handlerName]) return;
+  onDragHandler(handlerName:string) {
+      console.log(arguments);
+      if (!this[handlerName]) return;
 
       const newPosition: {top: number, left: number} = {top: 0, left: 0};
 
       // Get new XY
       switch (handlerName) {
         case 'onDragStart':
+          console.log('onDragStart: ', this._element)
           // ToDo this wont work on nested parents
-          const parentRect = node.offsetParent.getBoundingClientRect();
+/*          const parentRect = node.offsetParent.getBoundingClientRect();
           const clientRect = node.getBoundingClientRect();
           newPosition.left = clientRect.left - parentRect.left;
           newPosition.top = clientRect.top - parentRect.top;
-          this.setState({dragging: newPosition});
+          this.setState({dragging: newPosition});*/
           break;
         case 'onDrag':
-          if (!this.state.dragging) throw new Error('onDrag called before onDragStart.');
+          console.log('onDrag: ', this._element)
+/*          if (!this.state.dragging) throw new Error('onDrag called before onDragStart.');
           newPosition.left = this.state.dragging.left + deltaX;
           newPosition.top = this.state.dragging.top + deltaY;
-          this.setState({dragging: newPosition});
+          this.setState({dragging: newPosition});*/
           break;
         case 'onDragStop':
-          if (!this.state.dragging) throw new Error('onDragEnd called before onDragStart.');
+          console.log('onDragStop: ', this._element)
+/*          if (!this.state.dragging) throw new Error('onDragEnd called before onDragStart.');
           newPosition.left = this.state.dragging.left;
           newPosition.top = this.state.dragging.top;
-          this.setState({dragging: null});
+          this.setState({dragging: null});*/
           break;
         default:
           throw new Error('onDragHandler called with unrecognized handlerName: ' + handlerName);
@@ -314,23 +318,13 @@ export class GridItemComponent implements OnChanges {
 
       const {x, y} = this.calcXY(newPosition.top, newPosition.left);
 
-      this.props[handlerName](this.props.i, x, y, {e, node, newPosition});
-    };*/
+      // this[handlerName](this.dataGrid.i, x, y, {e, this._element, newPosition});
   }
 
-  /**
-   * Wrapper around drag events to provide more useful data.
-   * All drag events call the function with the given handler name,
-   * with the signature (index, x, y).
-   *
-   * @param  {String} handlerName Handler name to wrap.
-   * @return {Function}           Handler function.
-   */
-  onResizeHandler(event:MouseEvent, handlerName: string) {
+  onResizeHandler(handlerName: string) {
     console.log(arguments);
-/*    return (e:Event, {node, size}: {node: HTMLElement, size: Position}) => {
-      if (!this.props[handlerName]) return;
-      const {cols, x, i, maxW, minW, maxH, minH} = this.props;
+/*      if (!this[handlerName]) return;
+      const {cols, x, i, maxW, minW, maxH, minH} = this.dataGrid;
 
       // Get new XY
       let {w, h} = this.calcWH(size);
@@ -344,10 +338,8 @@ export class GridItemComponent implements OnChanges {
       w = Math.max(Math.min(w, maxW), minW);
       h = Math.max(Math.min(h, maxH), minH);
 
-      this.setState({resizing: handlerName === 'onResizeStop' ? null : size});
+      this._gridItemState.resizing = (handlerName === 'onResizeStop') ? null : size;
 
-      this.props[handlerName](i, w, h, {e, node, size});
-    };*/
+      // this[handlerName](i, w, h, {e, node, size});*/
   }
-
 }

@@ -1,3 +1,13 @@
-<p>
-  grid-item works!
-</p>
+<div
+  class="grid-item"
+  [draggable]="draggableProp"
+  [resizable]="resizableProp"
+  (onResizeStop)="onResizeHandler('onResizeStop')"
+  (onResizeStart)="onResizeHandler('onResizeStart')"
+  (onResize)="onResizeHandler('onResize')"
+  (onStart)="onDragHandler('onDragStart')"
+  (onDrag)="onDragHandler('onDrag')"
+  (onStop)="onDragHandler('onDragStop')"
+  >
+  <ng-content></ng-content>
+</div>

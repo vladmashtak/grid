@@ -1,11 +1,12 @@
 import { IPosition } from './grid-item.interfaces';
 
-interface LayoutItemRequired {
+export interface LayoutItemRequired {
   w: number; h: number;
   x: number; y: number;
   i: string;
 }
-interface LayoutItem extends LayoutItemRequired {
+
+export interface LayoutItem extends LayoutItemRequired {
   minW?: number; minH?: number;
   maxW?: number; maxH?: number;
   moved?: boolean; static?: boolean;
@@ -14,6 +15,7 @@ interface LayoutItem extends LayoutItemRequired {
 
 /**
  * Return the bottom coordinate of the layout.
+ * Возвращает коодринаты низа слоя сетки
  *
  * @param  {Array} layout Layout array.
  * @return {Number}       Bottom coordinate.
@@ -26,7 +28,9 @@ export function bottom(layout:Array<LayoutItem>):number {
   }
   return max;
 }
-
+/**
+ * Делаем поэлементно копию нашего слоя
+ */
 export function cloneLayout(layout:Array<LayoutItem>):Array<LayoutItem> {
   const newLayout = Array(layout.length);
   for (let i = 0, len = layout.length; i < len; i++) {
@@ -47,7 +51,7 @@ export function cloneLayoutItem(layoutItem:LayoutItem):LayoutItem {
 }
 
 /**
- * Comparing React `children` is a bit difficult. This is a good way to compare them.
+ * Comparing `children` is a bit difficult. This is a good way to compare them.
  * This will catch differences in keys, order, and length.
  */
 export function childrenEqual(a:any, b:any):boolean {
@@ -55,7 +59,7 @@ export function childrenEqual(a:any, b:any):boolean {
 }
 
 /**
- * Given two layoutitems, check if they collide.
+ * Given two layout items, check if they collide.
  */
 export function collides(l1:LayoutItem, l2:LayoutItem):boolean {
   if (l1 === l2) return false; // same element
@@ -352,48 +356,22 @@ export function synchronizeLayoutWithChildren(initialLayout:Array<LayoutItem>, c
   initialLayout = initialLayout || [];
 
   // Generate one layout item per child.
-  let layout:Array<LayoutItem> = new Array<LayoutItem>();
+  let layout:Array<LayoutItem> = [];
   for (let i = 0; i < children.length; i++ ) {
-    const exists = getLayoutItem(initialLayout, children[i].key || "1" /* FIXME satisfies Flow */);
+    const exists = getLayoutItem(initialLayout, children[i].key || "1");
     if (exists) {
       layout[i] = cloneLayoutItem(exists);
     } else {
-      if (process.env.NODE_ENV !== 'production' && children[i]._grid) {
-        console.warn('`_grid` properties on children have been deprecated as of React 15.2. ' + // eslint-disable-line
-          'Please use `data-grid` or add your properties directly to the `layout`.');
-      }
-      const g = children[i]['data-grid'] || children[i]._grid;
-
+      const g = children[i]['data-grid'];
       // Hey, this item has a data-grid property, use it.
       if (g) {
-        layout[i] = cloneLayoutItem(<LayoutItem>{...g, i: children[i].key});
+        layout[i] = cloneLayoutItem(Object.assign(g,{i: children[i]}));
       } else {
         // Nothing provided: ensure this is added to the bottom
         layout[i] = cloneLayoutItem({w: 1, h: 1, x: 0, y: bottom(layout), i: children[i].key || "1"});
       }
     }
   }
-/*  children.forEach((child:any, i:number) => {
-    // Don't overwrite if it already exists.
-    const exists = getLayoutItem(initialLayout, child.key || "1" /!* FIXME satisfies Flow *!/);
-    if (exists) {
-      layout[i] = cloneLayoutItem(exists);
-    } else {
-      if (process.env.NODE_ENV !== 'production' && child._grid) {
-        console.warn('`_grid` properties on children have been deprecated as of React 15.2. ' + // eslint-disable-line
-          'Please use `data-grid` or add your properties directly to the `layout`.');
-      }
-      const g = child['data-grid'] || child._grid;
-
-      // Hey, this item has a data-grid property, use it.
-      if (g) {
-        layout[i] = cloneLayoutItem(<LayoutItem>{...g, i: child.key});
-      } else {
-        // Nothing provided: ensure this is added to the bottom
-        layout[i] = cloneLayoutItem({w: 1, h: 1, x: 0, y: bottom(layout), i: child.key || "1"});
-      }
-    }
-  });*/
 
   // Correct the layout.
   layout = correctBounds(layout, {cols: cols});

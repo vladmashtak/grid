@@ -64,7 +64,7 @@ export class ResizableDirective implements OnChanges, OnDestroy {
     /* add event listener to resize handler */
     this._renderer.listen(this._handleElement, this._dragEventFor['start'], this.handleResizeStart.bind(this));
 
-    this.getInitialState();
+    this.setInitialState();
 
     // Set new style and merge width current style
     this.setStyle(this._resizeState.width, this._resizeState.height);
@@ -81,7 +81,7 @@ export class ResizableDirective implements OnChanges, OnDestroy {
     this._element.nativeElement.style.height = height + 'px';
   }
 
-  getInitialState() {
+  setInitialState() {
     let width:number = this.resizable.width;
     let height:number = this.resizable.height;
 
