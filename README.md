@@ -18,7 +18,7 @@
   </div>
 ```
 
-
+```javascript
   draggableProp = {
     'useCSSTransforms': true,
     'zIndex': 100,
@@ -32,3 +32,4 @@
     'handle': '.resizable-handle'
   };
 }
+```
