@@ -1,5 +1,5 @@
 # grid
-
+```HTML
   <div [draggable]="draggableProp" [resizable]="resizableProp" class="grid-item">
     <span class="text draggable-handle">Test1</span>
     <span class="resizable-handle"></span>
@@ -16,6 +16,8 @@
     <span class="text draggable-handle">Test4</span>
     <span class="resizable-handle"></span>
   </div>
+```
+
 
   draggableProp = {
     'useCSSTransforms': true,
