@@ -2,12 +2,14 @@
   class="grid-item"
   [draggable]="draggableProp"
   [resizable]="resizableProp"
-  (onResizeStop)="onResizeHandler('onResizeStop')"
-  (onResizeStart)="onResizeHandler('onResizeStart')"
-  (onResize)="onResizeHandler('onResize')"
-  (onStart)="onDragHandler('onDragStart')"
-  (onDrag)="onDragHandler('onDrag')"
-  (onStop)="onDragHandler('onDragStop')"
+  (onResizeStop)="onResizeHandler($event, 'onResizeStop')"
+  (onResizeStart)="onResizeHandler($event, 'onResizeStart')"
+  (onResize)="onResizeHandler($event, 'onResize')"
+  (onStart)="onDragHandler($event, 'onDragStart')"
+  (onDrag)="onDragHandler($event, 'onDrag')"
+  (onStop)="onDragHandler($event, 'onDragStop')"
   >
+  <h4 class="draggable-handle">Test4</h4>
   <ng-content></ng-content>
+  <span class="resizable-handle"></span>
 </div>

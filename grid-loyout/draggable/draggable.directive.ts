@@ -21,6 +21,13 @@ import {
 
 import { IControlPosition } from '../grid-loyout.interfaces';
 
+interface IDragCallback {
+  event: Event;
+  node: HTMLElement;
+  deltaX?: number;
+  deltaY?: number;
+}
+
 @Directive({
   selector: '[draggable]',
   host: {
@@ -38,21 +45,21 @@ export class DraggableDirective implements OnInit, OnChanges, OnDestroy {
    * Example:
    *       (onStart)="eventHandle(dragItem)"
    */
-  @Output() onStart:EventEmitter<IDragState> = new EventEmitter<IDragState>();
+  @Output() onStart:EventEmitter<IDragCallback> = new EventEmitter<IDragCallback>();
   /**
    * Called while dragging.
    *
    * Example:
    *      (onDrag)="eventHandle(dragItem)">
    */
-  @Output() onDrag:EventEmitter<IDragState> = new EventEmitter<IDragState>();
+  @Output() onDrag:EventEmitter<IDragCallback> = new EventEmitter<IDragCallback>();
   /**
    * Called when dragging stops.
    *
    * Example:
    *     (onStop)="eventHandle(dragItem)"
    */
-  @Output() onStop:EventEmitter<IDragState> = new EventEmitter<IDragState>();
+  @Output() onStop:EventEmitter<IDragCallback> = new EventEmitter<IDragCallback>();
 
   private _dragEventFor:string;
   private _dragState:IDragState;
@@ -167,7 +174,10 @@ export class DraggableDirective implements OnInit, OnChanges, OnDestroy {
     document.body.classList.add('draggable-active');
 
     // Call event handler
-    this.onStart.emit(this._dragState);
+    this.onStart.emit({
+      event: e,
+      node: this._element.nativeElement
+    });
 
     // Add event handlers
     this._gridEvent.addEvent(this._renderer, this._dragEventFor['move'], this.handleDrag.bind(this));
@@ -179,7 +189,7 @@ export class DraggableDirective implements OnInit, OnChanges, OnDestroy {
     this.handleDragStart.apply(this, arguments);
   }
 
-  handleDragEnd():void {
+  handleDragEnd(e):void {
     // Short circuit if not currently dragging
     if (!this._dragState.dragging) return;
     // Turn off dragging
@@ -189,7 +199,10 @@ export class DraggableDirective implements OnInit, OnChanges, OnDestroy {
     document.body.classList.remove('draggable-active');
 
     // Call event handler
-    this.onStop.emit(this._dragState);
+    this.onStop.emit({
+      event: e,
+      node: this._element.nativeElement
+    });
 
     // Remove event handlers
     this._gridEvent.removeEvent(this._dragEventFor['move']);
@@ -225,7 +238,12 @@ export class DraggableDirective implements OnInit, OnChanges, OnDestroy {
     this._dragState.clientY = clientY;
 
     // Call event handler
-    this.onDrag.emit(this._dragState);
+    this.onDrag.emit({
+      event: e,
+      node: this._element.nativeElement,
+      deltaX: deltaX,
+      deltaY: deltaY
+    });
 
     this.setStyle()
   }

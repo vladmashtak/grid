@@ -23,3 +23,14 @@ export interface IResizeState {
   width: number; height: number;
   slackW: number; slackH: number;
 }
+
+interface ISize {
+  width: number;
+  height: number;
+}
+
+export interface IResizeCallback {
+  event: Event;
+  node: HTMLElement;
+  size: ISize;
+}

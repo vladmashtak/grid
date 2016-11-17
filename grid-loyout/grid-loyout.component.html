@@ -1,5 +1,11 @@
-<template *ngFor="let child of children._results">
- <grid-item>
-   <!--<div [innerHTML]="child.nativeElement.innerHTML"></div>-->
- </grid-item>
-</template>
+<grid-item
+  [key]="'a'"
+  [dataGrid]="">
+  <span class="draggable-handle text">Test1</span>
+  <span class="resizable-handle"></span>
+</grid-item>
+<!--<grid-item-->
+  <!--[dataGrid]="placeholder()">-->
+  <!--<span class="draggable-handle text">Placeholder</span>-->
+  <!--<span class="resizable-handle"></span>-->
+<!--</grid-item>-->

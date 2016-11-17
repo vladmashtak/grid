@@ -13,7 +13,8 @@ import { GridEventService } from '../grid-event.service';
 
 import {
   IResizable,
-  IResizeState
+  IResizeState,
+  IResizeCallback
 } from './resizable.interfaces';
 
 import { IControlPosition } from '../grid-loyout.interfaces';
@@ -25,9 +26,9 @@ import { IControlPosition } from '../grid-loyout.interfaces';
 export class ResizableDirective implements OnChanges, OnDestroy {
   @Input() resizable:IResizable;
 
-  @Output() onResize:EventEmitter<any> = new EventEmitter<any>();
-  @Output() onResizeStart:EventEmitter<any> = new EventEmitter<any>();
-  @Output() onResizeStop:EventEmitter<any> = new EventEmitter<any>();
+  @Output() onResize:EventEmitter<IResizeCallback> = new EventEmitter<IResizeCallback>();
+  @Output() onResizeStart:EventEmitter<IResizeCallback> = new EventEmitter<IResizeCallback>();
+  @Output() onResizeStop:EventEmitter<IResizeCallback> = new EventEmitter<IResizeCallback>();
 
   private _resizeState:IResizeState;
   private _handleElement:HTMLElement;
@@ -87,7 +88,7 @@ export class ResizableDirective implements OnChanges, OnDestroy {
 
     this._resizeState = <IResizeState>{
       resizing: false,
-      lastX: 0, lastY: 0,
+      lastX: null, lastY: null,
       width: width, height: height,
       slackW: 0, slackH: 0
     };
@@ -161,12 +162,13 @@ export class ResizableDirective implements OnChanges, OnDestroy {
   resizeHandler(e, handlerName:string) {
     // Get the current drag point from the event. This is used as the offset.
     const position:IControlPosition = this._gridEvent.getControlPosition(e);
+
     if (position == null) return; // not possible but satisfies flow
 
     let deltaX = position.clientX - this._resizeState.lastX, deltaY = position.clientY - this._resizeState.lastY;
-
-    let width = this._resizeState.width + deltaX;
-    let height = this._resizeState.height + deltaY;
+    // initial lastX and lastY === null and we dont use it in first click on element
+    let width = (this._resizeState.lastX === null) ? this._resizeState.width : this._resizeState.width + deltaX;
+    let height = (this._resizeState.lastY === null) ? this._resizeState.height : this._resizeState.height + deltaY;
 
     // Early return if no change
     const widthChanged = width !== this._resizeState.width, heightChanged = height !== this._resizeState.height;
@@ -188,6 +190,7 @@ export class ResizableDirective implements OnChanges, OnDestroy {
       this._resizeState.height = height;
 
     } else {
+
       // Early return if no change after constraints
       if (width === this._resizeState.width && height === this._resizeState.height) return;
 
@@ -196,9 +199,9 @@ export class ResizableDirective implements OnChanges, OnDestroy {
     }
 
     this[handlerName].emit({
+      event: e,
       node: this._element.nativeElement,
-      x: position.clientX, y: position.clientY,
-      deltaX: deltaX, deltaY: deltaY
+      size: {width: width, height: height}
     });
   }
 }
