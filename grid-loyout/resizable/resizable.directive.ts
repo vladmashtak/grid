@@ -68,7 +68,7 @@ export class ResizableDirective implements OnChanges, OnDestroy {
     this.setInitialState();
 
     // Set new style and merge width current style
-    this.setStyle(this._resizeState.width, this._resizeState.height);
+    /*this.setStyle(this._resizeState.width, this._resizeState.height);*/
   }
 
   ngOnDestroy() {
@@ -181,6 +181,11 @@ export class ResizableDirective implements OnChanges, OnDestroy {
       // so we know how much we've moved during the drag. This allows us
       // to drag elements around even if they have been moved, without issue.
       this._resizeState.resizing = true;
+      /*
+      * TODO
+      * хак для того что бы ресайзелось по сетке, нужно будет убрать
+      * когда сделаю общую директиву для ресайзера и драггейбла
+      * */
       this._resizeState.lastX = position.clientX;
       this._resizeState.lastY = position.clientY;
 
@@ -195,7 +200,7 @@ export class ResizableDirective implements OnChanges, OnDestroy {
       if (width === this._resizeState.width && height === this._resizeState.height) return;
 
       // Set new style and merge width current style
-      this.setStyle(width, height);
+      /*this.setStyle(width, height);*/
     }
 
     this[handlerName].emit({

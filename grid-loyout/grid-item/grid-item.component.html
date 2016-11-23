@@ -1,4 +1,5 @@
 <div
+  [ngStyle]="style"
   class="grid-item"
   [draggable]="draggableProp"
   [resizable]="resizableProp"
@@ -9,7 +10,12 @@
   (onDrag)="onDragHandler($event, 'onDrag')"
   (onStop)="onDragHandler($event, 'onDragStop')"
   >
-  <h4 class="draggable-handle">Test4</h4>
+  <h4 class="draggable-handle">{{style}}</h4>
   <ng-content></ng-content>
   <span class="resizable-handle"></span>
+</div>
+<div
+  *ngIf="placeholderVisibility"
+  [ngStyle]="placeholder"
+  class="grid-placeholder">
 </div>

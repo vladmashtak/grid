@@ -3,31 +3,19 @@ export interface IPosition {
   width: number; height: number;
 }
 
-interface IGridResizing {
+export interface IGridResizing {
   width: number; height: number;
 }
 
-interface IGridDragging {
+export interface IGridDragging {
   top: number; left: number;
+  startX?: number; startY?: number;
 }
 
 export interface IGridItemState {
   resizing?:IGridResizing;
   dragging?:IGridDragging;
-  className: string;
-}
-
-interface ILayoutItemRequired {
-  w: number; h: number;
-  x: number; y: number;
-  i: string;
-}
-
-export interface ILayoutItem extends ILayoutItemRequired {
-  minW?: number; minH?: number;
-  maxW?: number; maxH?: number;
-  moved?: boolean; static?: boolean;
-  isDraggable?: boolean; isResizable?: boolean;
+  className?: string;
 }
 
 export interface IDataGrid {

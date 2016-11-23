@@ -1,17 +1,5 @@
 import { IPosition } from './grid-item.interfaces';
-
-export interface LayoutItemRequired {
-  w: number; h: number;
-  x: number; y: number;
-  i: string;
-}
-
-export interface LayoutItem extends LayoutItemRequired {
-  minW?: number; minH?: number;
-  maxW?: number; maxH?: number;
-  moved?: boolean; static?: boolean;
-  isDraggable?: boolean; isResizable?: boolean;
-}
+import { ILayoutItem } from '../grid-loyout.interfaces';
 
 /**
  * Return the bottom coordinate of the layout.
@@ -20,9 +8,10 @@ export interface LayoutItem extends LayoutItemRequired {
  * @param  {Array} layout Layout array.
  * @return {Number}       Bottom coordinate.
  */
-export function bottom(layout:Array<LayoutItem>):number {
+export function bottom(layout:Array<ILayoutItem>):number {
   let max = 0, bottomY;
   for (let i = 0, len = layout.length; i < len; i++) {
+    console.log(layout[i]);
     bottomY = layout[i].y + layout[i].h;
     if (bottomY > max) max = bottomY;
   }
@@ -31,7 +20,7 @@ export function bottom(layout:Array<LayoutItem>):number {
 /**
  * Делаем поэлементно копию нашего слоя
  */
-export function cloneLayout(layout:Array<LayoutItem>):Array<LayoutItem> {
+export function cloneLayout(layout:Array<ILayoutItem>):Array<ILayoutItem> {
   const newLayout = Array(layout.length);
   for (let i = 0, len = layout.length; i < len; i++) {
     newLayout[i] = cloneLayoutItem(layout[i]);
@@ -40,7 +29,7 @@ export function cloneLayout(layout:Array<LayoutItem>):Array<LayoutItem> {
 }
 
 // Fast path to cloning, since this is monomorphic
-export function cloneLayoutItem(layoutItem:LayoutItem):LayoutItem {
+export function cloneLayoutItem(layoutItem:ILayoutItem):ILayoutItem {
   return {
     w: layoutItem.w, h: layoutItem.h, x: layoutItem.x, y: layoutItem.y, i: layoutItem.i,
     minW: layoutItem.minW, maxW: layoutItem.maxW, minH: layoutItem.minH, maxH: layoutItem.maxH,
@@ -61,7 +50,7 @@ export function childrenEqual(a:any, b:any):boolean {
 /**
  * Given two layout items, check if they collide.
  */
-export function collides(l1:LayoutItem, l2:LayoutItem):boolean {
+export function collides(l1:ILayoutItem, l2:ILayoutItem):boolean {
   if (l1 === l2) return false; // same element
   if (l1.x + l1.w <= l2.x) return false; // l1 is left of l2
   if (l1.x >= l2.x + l2.w) return false; // l1 is right of l2
@@ -79,7 +68,7 @@ export function collides(l1:LayoutItem, l2:LayoutItem):boolean {
  *   vertically.
  * @return {Array}       Compacted Layout.
  */
-export function compact(layout:Array<LayoutItem>, verticalCompact:boolean):Array<LayoutItem> {
+export function compact(layout:Array<ILayoutItem>, verticalCompact:boolean):Array<ILayoutItem> {
   // Statics go in the compareWith array right away so items flow around them.
   const compareWith = getStatics(layout);
   // We go through the items by row and column.
@@ -112,7 +101,7 @@ export function compact(layout:Array<LayoutItem>, verticalCompact:boolean):Array
 /**
  * Compact an item in the layout.
  */
-export function compactItem(compareWith:Array<LayoutItem>, l:LayoutItem, verticalCompact:boolean):LayoutItem {
+export function compactItem(compareWith:Array<ILayoutItem>, l:ILayoutItem, verticalCompact:boolean):ILayoutItem {
   if (verticalCompact) {
     // Bottom 'y' possible is the bottom of the layout.
     // This allows you to do nice stuff like specify {y: Infinity}
@@ -139,7 +128,7 @@ export function compactItem(compareWith:Array<LayoutItem>, l:LayoutItem, vertica
  * @param  {Array} layout Layout array.
  * @param  {Number} bounds Number of columns.
  */
-export function correctBounds(layout:Array<LayoutItem>, bounds:{cols: number}):Array<LayoutItem> {
+export function correctBounds(layout:Array<ILayoutItem>, bounds:{cols: number}):Array<ILayoutItem> {
   const collidesWith = getStatics(layout);
   for (let i = 0, len = layout.length; i < len; i++) {
     const l = layout[i];
@@ -169,7 +158,7 @@ export function correctBounds(layout:Array<LayoutItem>, bounds:{cols: number}):A
  * @param  {String} id     ID
  * @return {LayoutItem}    Item at ID.
  */
-export function getLayoutItem(layout:Array<LayoutItem>, id:string):LayoutItem {
+export function getLayoutItem(layout:Array<ILayoutItem>, id:string):ILayoutItem {
   for (let i = 0, len = layout.length; i < len; i++) {
     if (layout[i].i === id) return layout[i];
   }
@@ -183,13 +172,13 @@ export function getLayoutItem(layout:Array<LayoutItem>, id:string):LayoutItem {
  * @param  {Object} layoutItem Layout item.
  * @return {Object|undefined}  A colliding layout item, or undefined.
  */
-export function getFirstCollision(layout:Array<LayoutItem>, layoutItem:LayoutItem):LayoutItem {
+export function getFirstCollision(layout:Array<ILayoutItem>, layoutItem:ILayoutItem):ILayoutItem {
   for (let i = 0, len = layout.length; i < len; i++) {
     if (collides(layout[i], layoutItem)) return layout[i];
   }
 }
 
-export function getAllCollisions(layout:Array<LayoutItem>, layoutItem:LayoutItem):Array<LayoutItem> {
+export function getAllCollisions(layout:Array<ILayoutItem>, layoutItem:ILayoutItem):Array<ILayoutItem> {
   return layout.filter((l) => collides(l, layoutItem));
 }
 
@@ -198,7 +187,7 @@ export function getAllCollisions(layout:Array<LayoutItem>, layoutItem:LayoutItem
  * @param  {Array} layout Array of layout objects.
  * @return {Array}        Array of static layout items..
  */
-export function getStatics(layout:Array<LayoutItem>):Array<LayoutItem> {
+export function getStatics(layout:Array<ILayoutItem>):Array<ILayoutItem> {
   return layout.filter((l) => l.static);
 }
 
@@ -212,7 +201,7 @@ export function getStatics(layout:Array<LayoutItem>):Array<LayoutItem> {
  * @param  {Boolean}    [isUserAction] If true, designates that the item we're moving is
  *                                     being dragged/resized by the user.
  */
-export function moveElement(layout:Array<LayoutItem>, l:LayoutItem, x?:number, y?:number, isUserAction?:boolean):Array<LayoutItem> {
+export function moveElement(layout:Array<ILayoutItem>, l:ILayoutItem, x?:number, y?:number, isUserAction?:boolean):Array<ILayoutItem> {
   if (l.static) return layout;
 
   // Short-circuit if nothing to do.
@@ -264,15 +253,15 @@ export function moveElement(layout:Array<LayoutItem>, l:LayoutItem, x?:number, y
  * @param  {Boolean} [isUserAction]  If true, designates that the item we're moving is being dragged/resized
  *                                   by the user.
  */
-export function moveElementAwayFromCollision(layout:Array<LayoutItem>, collidesWith:LayoutItem,
-                                             itemToMove:LayoutItem, isUserAction?:boolean):Array<LayoutItem> {
+export function moveElementAwayFromCollision(layout:Array<ILayoutItem>, collidesWith:ILayoutItem,
+                                             itemToMove:ILayoutItem, isUserAction?:boolean):Array<ILayoutItem> {
 
   // If there is enough space above the collision to put this element, move it there.
   // We only do this on the main collision as this can get funky in cascades and cause
   // unwanted swapping behavior.
   if (isUserAction) {
     // Make a mock item so we don't modify the item here, only modify in moveElement.
-    const fakeItem:LayoutItem = {
+    const fakeItem:ILayoutItem = {
       x: itemToMove.x,
       y: itemToMove.y,
       w: itemToMove.w,
@@ -331,7 +320,7 @@ export function setTopLeft({top, left, width, height}: IPosition):Object {
  * @return {Array} Array of layout objects.
  * @return {Array}        Layout, sorted static items first.
  */
-export function sortLayoutItemsByRowCol(layout:Array<LayoutItem>):Array<LayoutItem> {
+export function sortLayoutItemsByRowCol(layout:Array<ILayoutItem>):Array<ILayoutItem> {
   return [].concat(layout).sort(function (a, b) {
     if (a.y > b.y || (a.y === b.y && a.x > b.x)) {
       return 1;
@@ -352,11 +341,11 @@ export function sortLayoutItemsByRowCol(layout:Array<LayoutItem>):Array<LayoutIt
  * @param  {Boolean} verticalCompact Whether or not to compact the layout vertically.
  * @return {Array}                Working layout.
  */
-export function synchronizeLayoutWithChildren(initialLayout:Array<LayoutItem>, children:any, cols:number, verticalCompact:boolean):Array<LayoutItem> {
+export function synchronizeLayoutWithChildren(initialLayout:Array<ILayoutItem>, children:any, cols:number, verticalCompact:boolean):Array<ILayoutItem> {
   initialLayout = initialLayout || [];
 
   // Generate one layout item per child.
-  let layout:Array<LayoutItem> = [];
+  let layout:Array<ILayoutItem> = [];
   for (let i = 0; i < children.length; i++ ) {
     const exists = getLayoutItem(initialLayout, children[i].key || "1");
     if (exists) {
@@ -387,7 +376,7 @@ export function synchronizeLayoutWithChildren(initialLayout:Array<LayoutItem>, c
  * @param  {String} [contextName] Context name for errors.
  * @throw  {Error}                Validation error.
  */
-export function validateLayout(layout:Array<LayoutItem>, contextName:string):void {
+export function validateLayout(layout:Array<ILayoutItem>, contextName:string):void {
   contextName = contextName || "Layout";
   const subProps = ['x', 'y', 'w', 'h'];
   if (!Array.isArray(layout)) throw new Error(contextName + " must be an array!");

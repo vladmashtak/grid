@@ -24,6 +24,8 @@ import { IControlPosition } from '../grid-loyout.interfaces';
 interface IDragCallback {
   event: Event;
   node: HTMLElement;
+  clientX?: number;
+  clientY?: number;
   deltaX?: number;
   deltaY?: number;
 }
@@ -94,7 +96,7 @@ export class DraggableDirective implements OnInit, OnChanges, OnDestroy {
     }, this.draggable);
 
     this.setInitialState();
-    this.setStyle();
+    /*this.setStyle();*/
   }
 
   ngOnDestroy() {
@@ -103,7 +105,7 @@ export class DraggableDirective implements OnInit, OnChanges, OnDestroy {
     this._gridEvent.removeEvent(this._dragEventFor['end']);
   }
 
-  setStyle():void {
+/*  setStyle():void {
     let inlineStyles:string;
     let style:any = {
       // Set top if vertical drag is enabled
@@ -129,7 +131,7 @@ export class DraggableDirective implements OnInit, OnChanges, OnDestroy {
     }
 
     Object.assign(this._element.nativeElement.style, style);
-  }
+  }*/
 
   setInitialState() {
     let startX:number = this.draggable.start.x;
@@ -172,10 +174,13 @@ export class DraggableDirective implements OnInit, OnChanges, OnDestroy {
     // Add a class to the body to disable user-select. This prevents text from
     // being selected all over the page.
     document.body.classList.add('draggable-active');
+    this._element.nativeElement.classList.add('drag-item-active');
 
     // Call event handler
     this.onStart.emit({
       event: e,
+      clientX: this._dragState.clientX,
+      clientY: this._dragState.clientY,
       node: this._element.nativeElement
     });
 
@@ -187,26 +192,6 @@ export class DraggableDirective implements OnInit, OnChanges, OnDestroy {
   handleTouchStart(e) {
     e.preventDefault(); // prevent for scroll
     this.handleDragStart.apply(this, arguments);
-  }
-
-  handleDragEnd(e):void {
-    // Short circuit if not currently dragging
-    if (!this._dragState.dragging) return;
-    // Turn off dragging
-    this._dragState.dragging = false;
-
-    // Remove the body class used to disable user-select.
-    document.body.classList.remove('draggable-active');
-
-    // Call event handler
-    this.onStop.emit({
-      event: e,
-      node: this._element.nativeElement
-    });
-
-    // Remove event handlers
-    this._gridEvent.removeEvent(this._dragEventFor['move']);
-    this._gridEvent.removeEvent(this._dragEventFor['end']);
   }
 
   handleDrag(e):void {
@@ -241,11 +226,36 @@ export class DraggableDirective implements OnInit, OnChanges, OnDestroy {
     this.onDrag.emit({
       event: e,
       node: this._element.nativeElement,
+      clientX: clientX,
+      clientY: clientY,
       deltaX: deltaX,
       deltaY: deltaY
     });
 
-    this.setStyle()
+    /*this.setStyle()*/
+  }
+
+  handleDragEnd(e):void {
+    // Short circuit if not currently dragging
+    if (!this._dragState.dragging) return;
+    // Turn off dragging
+    this._dragState.dragging = false;
+
+    // Remove the body class used to disable user-select.
+    document.body.classList.remove('draggable-active');
+    this._element.nativeElement.classList.remove('drag-item-active');
+
+    // Call event handler
+    this.onStop.emit({
+      event: e,
+      clientX: this._dragState.clientX,
+      clientY: this._dragState.clientY,
+      node: this._element.nativeElement
+    });
+
+    // Remove event handlers
+    this._gridEvent.removeEvent(this._dragEventFor['move']);
+    this._gridEvent.removeEvent(this._dragEventFor['end']);
   }
 
   canDragY(draggable:DraggableDirective):boolean {

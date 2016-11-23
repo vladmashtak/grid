@@ -1,11 +1,6 @@
-<grid-item
-  [key]="'a'"
-  [dataGrid]="">
-  <span class="draggable-handle text">Test1</span>
-  <span class="resizable-handle"></span>
-</grid-item>
-<!--<grid-item-->
-  <!--[dataGrid]="placeholder()">-->
-  <!--<span class="draggable-handle text">Placeholder</span>-->
-  <!--<span class="resizable-handle"></span>-->
-<!--</grid-item>-->
+<ng-content></ng-content>
+<div
+  *ngIf="showPlaceholder"
+  class="grid-placeholder"
+  [ngStyle]="placeholder">
+</div>
