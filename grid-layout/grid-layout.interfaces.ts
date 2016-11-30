@@ -4,20 +4,22 @@ export interface IControlPosition {
 }
 
 export interface IPosition {
-  left: number; top: number;
-  width: number; height: number;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 }
 
 export interface ILayoutItemRequired {
   w: number; h: number;
   x: number; y: number;
-  i: string; id: number;
+  id: number;
 }
 
 export interface ILayoutItem extends ILayoutItemRequired {
   minW?: number; minH?: number;
   maxW?: number; maxH?: number;
-  moved?: boolean;
+  moved?: boolean; stat?: boolean;
 }
 
 export interface IGridLayout {
@@ -79,15 +81,12 @@ export interface IGridLayout {
   isResizable:boolean;
   /* Use CSS transforms instead of top/left */
   useCSSTransforms:boolean;
+  colWidth: number;
 }
 
 export interface IGridLayoutState {
   placeholderStyle: any;
   containerHeight: string;
-  activeDrag?: ILayoutItem;
+  activeDrag?: number;
   layout: Array<ILayoutItem>;
-  mounted: boolean;
-  oldDragItem: ILayoutItem;
-  oldLayout: any;
-  oldResizeItem: ILayoutItem;
 }

@@ -1,6 +1,4 @@
 export interface IDragState {
-  // Whether or not currently dragging
-  dragging:boolean;
   // Start top/left
   startX:number; startY:number;
   // Offset between start top/left and mouse top/left
@@ -10,8 +8,6 @@ export interface IDragState {
 }
 
 export interface IResizeState {
-  // Whether or not currently resizing
-  resizing: boolean;
   lastX: number; lastY: number;
   width: number; height: number;
   offsetW: number; offsetH: number;

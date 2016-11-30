@@ -13,16 +13,33 @@ body.resizable-active {
   border: 1px solid black;
 }
 
+.grid-item:not(.grid-item-active) {
+  -webkit-transition: all 0.25s ease;
+  -moz-transition: all 0.25s ease;
+  -ms-transition: all 0.25s ease;
+  -o-transition: all 0.25s ease;
+  transition: all 0.25s ease;
+}
+
 .grid-item-active {
   z-index: 1000;
   opacity: 0.9;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .grid-placeholder {
   position: absolute;
-  background: red;
-  opacity: 0.4;
-  z-index: 2;
+  background-color: transparent;
+  border: 1px dashed black;
+  z-index: 999;
+  will-change: transform;
+  transform: translateZ(0);
+  -webkit-transition: transform 0.25s linear;
+  -moz-transition: transform 0.25s linear;
+  -ms-transition: transform 0.25s linear;
+  -o-transition: transform 0.25s linear;
+  transition: transform 0.25s linear;
 }
 
 .grid-item .text {

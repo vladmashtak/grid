@@ -5,11 +5,14 @@ import { Subject } from 'rxjs/Subject';
 import { GridUtilesService } from './grid-utiles.service';
 
 import {
+  IPosition,
   ILayoutItemRequired,
   ILayoutItem,
   IGridLayout,
   IGridLayoutState
 } from './grid-layout.interfaces';
+
+import { IGridItemState } from './grid-item/grid-item.interfaces';
 
 @Injectable()
 export class GridLayoutService {
@@ -36,17 +39,15 @@ export class GridLayoutService {
       useCSSTransforms: true,
       verticalCompact: true
     };
+    /** Calc col width */
+    this.grid.colWidth = this.calcColWidth();
 
     this._dataStore = {
       gridState: <IGridLayoutState>{
         placeholderStyle: null,
         containerHeight: '',
         activeDrag: null,
-        mounted: false,
-        layout: new Array<ILayoutItem>(),
-        oldDragItem: null,
-        oldLayout: null,
-        oldResizeItem: null
+        layout: new Array<ILayoutItem>()
       }
     };
   }
@@ -54,9 +55,11 @@ export class GridLayoutService {
   /**
    * Add new element in grid layout or redefine if element exist
    * */
-  emitLayoutElement(id:number, i:string, w:number, h:number, x:number, y:number) {
+  emitLayoutElement(id:number, w:number, h:number, x:number, y:number,
+                    minH:number = 4, minW:number = 4, maxH:number = Infinity, maxW:number = Infinity,
+                    moved:boolean = false, stat:boolean = false) {
     /* set new element or update, if element exist */
-    this._dataStore.gridState.layout[id] = {id, i, w, h, x, y};
+    this._dataStore.gridState.layout[id] = {w, h, x, y, id, minH, minW, maxH, maxW, moved, stat};
     /* recalculate container height */
     this._dataStore.gridState.containerHeight = this.containerHeight();
     /* emit data*/
@@ -70,15 +73,6 @@ export class GridLayoutService {
     return this.gridLayoutChange;
   }
 
-  addActiveElement(style:any) {
-    this._dataStore.gridState.placeholderStyle = style;
-    this.gridLayoutChange.emit(this._dataStore.gridState);
-  }
-
-  removeActiveElement() {
-    this._dataStore.gridState.placeholderStyle = null;
-    this.gridLayoutChange.emit(this._dataStore.gridState);
-  }
 
   /**
    * Calculates a pixel value for the container.
@@ -90,27 +84,46 @@ export class GridLayoutService {
     return nbRow * this.grid.rowHeight + (nbRow - 1) * this.grid.margin[1] + containerPaddingY * 2 + 'px';
   }
 
-  /**
-   * When dragging starts
-   * @param {String} i Id of the child
-   * @param {Number} x X position of the move
-   * @param {Number} y Y position of the move
-   */
-  onDragStart(id:number) {
-    const { layout } = this._dataStore.gridState;
-
-    let cloneLayoutItem = Object.assign({}, layout[id]);
-    let cloneLayout = Object.assign({}, layout);
-
-    this._dataStore.gridState.oldDragItem = cloneLayoutItem;
-    this._dataStore.gridState.oldLayout = cloneLayout;
-
-    console.log('onDragStart: ', this._dataStore.gridState);
+  calcColWidth():number {
+    let { containerWidth, margin, cols, containerPadding } = this.grid;
+    return (containerWidth - (margin[0] * (cols - 1)) - (containerPadding[0] * 2)) / cols;
   }
+
+  calcPosition(x:number, y:number, w:number, h:number):IPosition {
+    const { margin, containerPadding, rowHeight, colWidth } = this.grid;
+    return <IPosition>{
+      left: Math.round((colWidth + margin[0]) * x + containerPadding[0]),
+      top: Math.round((rowHeight + margin[1]) * y + containerPadding[1]),
+      /**
+       * 0 * Infinity === NaN, which causes problems with resize constraints;
+       * Fix this if it occurs.
+       * Note we do it here rather than later because Math.round(Infinity)
+       */
+      width: w === Infinity ? w : Math.round(colWidth * w + Math.max(0, w - 1) * margin[0]),
+      height: h === Infinity ? h : Math.round(rowHeight * h + Math.max(0, h - 1) * margin[1])
+    };
+  }
+
+  createStyle(pos:IPosition) {
+    const {useCSSTransforms} = this.grid;
+
+    let style;
+    /** CSS Transforms support (default) */
+    if (useCSSTransforms) {
+      style = this._utiles.setTransform(pos);
+    }
+    /** top,left (slow) */
+    else {
+      style = this._utiles.setTopLeft(pos);
+    }
+
+    return style;
+  }
+
 
   /**
    * Each drag movement create a new dragelement and move the element to the dragged location
-   * @param {String} i Id of the child
+   * @param {Number} id Id of the child
    * @param {Number} x X position of the move
    * @param {Number} y Y position of the move
    */
@@ -120,24 +133,28 @@ export class GridLayoutService {
     let l = layout[id];
     if (!l) return;
 
-    // Move the element to the dragged location.
+    /** Move the element to the dragged location. */
     layout = this._utiles.moveElement(layout, l, x, y, true /* isUserAction */);
+    const newLayout = this._utiles.compact(layout, true);
+    /** Set position for placeholder */
+    const pos = this.calcPosition(newLayout[id].x, newLayout[id].y, l.w, l.h);
 
-    console.log('layout: ', layout);
+    Object.assign(this._dataStore.gridState, {
+      activeDrag: id,
+      placeholderStyle: this.createStyle(pos),
+      layout: newLayout
+    });
 
-    this._dataStore.gridState.layout = this._utiles.compact(layout, true);
+    /** Recalculate container */
+    this._dataStore.gridState.containerHeight = this.containerHeight();
 
-    this._dataStore.gridState.activeDrag = {
-      w: l.w, h: l.h, x: x, y: y, i: l.i, id: id
-    };
-
-    this.emitLayoutElement(id, l.i, l.w, l.h, x, y);
-    console.log('onDrag: ', this._dataStore.gridState);
+    /** Emit data*/
+    this.gridLayoutChange.emit(this._dataStore.gridState);
   }
 
   /**
    * When dragging stops, figure out which position the element is closest to and update its x and y.
-   * @param  {String} i Index of the child.
+   * @param {Number} id Index of the child.
    * @param {Number} x X position of the move
    * @param {Number} y Y position of the move
    */
@@ -147,36 +164,18 @@ export class GridLayoutService {
     const l = layout[id];
     if (!l) return;
 
-    // Move the element here
+    /** Move the element here */
     layout = this._utiles.moveElement(layout, l, x, y, true /* isUserAction */);
 
-    // Set state
-    const newLayout = this._utiles.compact(layout, true);
-
     Object.assign(this._dataStore.gridState, {
+      placeholderStyle: null,
+      containerHeight: this.containerHeight(),
       activeDrag: null,
-      layout: newLayout,
-      oldDragItem: null,
-      oldLayout: null,
+      layout: this._utiles.compact(layout, true)
     });
 
-    console.log('onDragStop: ', this._dataStore.gridState);
-  }
-
-  onResizeStart(id:number) {
-    const { layout } = this._dataStore.gridState;
-
-    let l = layout[id];
-    if (!l) return;
-
-    let cloneLayoutItem:ILayoutItem = Object.assign({}, l);
-
-    Object.assign(this._dataStore.gridState, {
-      oldResizeItem: cloneLayoutItem,
-      oldLayout: layout
-    });
-
-    console.log('onResizeStart: ', this._dataStore.gridState);
+    /** emit data*/
+    this.gridLayoutChange.emit(this._dataStore.gridState);
   }
 
   onResize(id:number, w:number, h:number) {
@@ -185,30 +184,39 @@ export class GridLayoutService {
     let l = layout[id];
     if (!l) return;
 
-    // Set new width and height.
+    /** Set new width and height. */
     l.w = w;
     l.h = h;
 
-    // Re-compact the layout and set the drag placeholder.
-    this._dataStore.gridState.layout = this._utiles.compact(layout, true);
-    this._dataStore.gridState.activeDrag = {
-      w: w, h: h, x: l.x, y: l.y, i: l.i, id: id
-    };
+    /** Re-compact the layout and set the drag placeholder. */
+    const newLayout = this._utiles.compact(layout, true);
+    /** Set position for placeholder */
+    const pos = this.calcPosition(newLayout[id].x, newLayout[id].y, l.w, l.h);
 
-    console.log('onResize: ', this._dataStore.gridState);
+    Object.assign(this._dataStore.gridState, {
+      placeholderStyle: this.createStyle(pos),
+      activeDrag: id,
+      layout: newLayout
+    });
+
+    /** Recalculate container */
+    this._dataStore.gridState.containerHeight = this.containerHeight();
+
+    /** Emit data*/
+    this.gridLayoutChange.emit(this._dataStore.gridState);
   }
 
   onResizeStop() {
     const { layout } = this._dataStore.gridState;
-    const newLayout = this._utiles.compact(layout, true);
 
     Object.assign(this._dataStore.gridState, {
+      placeholderStyle: null,
+      containerHeight: this.containerHeight(),
       activeDrag: null,
-      layout: newLayout,
-      oldDragItem: null,
-      oldLayout: null,
+      layout: this._utiles.compact(layout, true)
     });
 
-    console.log('onResizeStop: ', this._dataStore.gridState);
+    /** emit data*/
+    this.gridLayoutChange.emit(this._dataStore.gridState);
   }
 }
