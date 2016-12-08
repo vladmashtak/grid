@@ -6,8 +6,6 @@ import { GridUtilesService} from './grid-utiles.service';
 import { GridLayoutService} from './grid-layout.service';
 
 import { GridLayoutComponent } from './grid-layout.component';
-import { DraggableDirective } from './draggable/draggable.directive';
-import { ResizableDirective } from './resizable/resizable.directive';
 import { GridItemDirective } from './grid-item/grid-item.directive';
 
 
@@ -17,14 +15,10 @@ import { GridItemDirective } from './grid-item/grid-item.directive';
   ],
   declarations: [
     GridLayoutComponent,
-    DraggableDirective,
-    ResizableDirective,
     GridItemDirective
   ],
   exports: [
     GridLayoutComponent,
-    DraggableDirective,
-    ResizableDirective,
     GridItemDirective
   ],
   providers: [
